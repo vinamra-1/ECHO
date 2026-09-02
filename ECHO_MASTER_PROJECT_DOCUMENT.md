@@ -20,6 +20,13 @@ Where a claim comes only from `PROJECT_CONTEXT.md` (the previous
 developer's own notes) and cannot be cross-checked in code or Git history,
 it is tagged `INFERRED (source: PROJECT_CONTEXT.md)`.
 
+Sections 27 (Recommended roadmap), 28 (Testing strategy), 33 (Future
+architecture) and 34 (Definition of done) are **recommendations written by
+the reconnaissance author**, not findings; they are deliberately untagged
+except where they cite a fact from an earlier section. Statements inside
+tables or bullet lists inherit the tag given in their section heading or
+introductory sentence unless individually overridden.
+
 ---
 
 ## Table of contents
@@ -506,7 +513,7 @@ repository. Names imply "close range" vs "far field with a fan running".
 
 - Requires `sherpa_onnx` (pip), `numpy`.
 - Model paths are hard-coded as **Windows relative paths** (`r"..\app\src\main\assets\kws"`) → must be run from `recordings/` on Windows, or adapted for POSIX. This also tells us the previous developer worked on Windows (see also `gradlew` exec bit and the Windows `Get-ChildItem` text in the initial commit's service file, §29). `CONFIRMED`.
-- Reproduces the Android pipeline: ×2.5 gain with clipping, 150 Hz one-pole HPF, exact KWS config (§10), feeds chunks, ~0.66 s of tail padding, `reset()` after each detection; prints WAV info and detection times.
+- Reproduces the Android pipeline: ×2.5 gain with clipping, 150 Hz one-pole HPF, exact KWS config (§10), feeds chunks, ~0.66 s of tail padding, `reset()` after each detection; prints WAV info, processed-audio RMS/peak, a detection count, and the detected keyword string for each hit. It does **not** record sample positions or timestamps, so it cannot tell you *where* in a recording a detection occurred (a limitation for ground-truth comparison, §13.6).
 - **No benchmark output/results are committed.** `CONFIRMED`.
 
 ### 13.5 Benchmark executed during reconnaissance (`CONFIRMED`, exploratory, not on-device)
@@ -541,6 +548,7 @@ No oWW benchmark was run during reconnaissance (would measure `hey_jarvis`, not 
   precision/recall/false-accepts.
 - oWW script cannot test the ECHO keyword at all.
 - No results are stored; no CI; scripts are Windows-path bound.
+- `run_sherpa_benchmark.py` reports detection *counts and keyword strings only*, with no sample offsets/timestamps, so hits cannot be matched to specific utterances.
 - Sherpa Python version ≠ Android AAR version unless pinned to 1.12.21.
 
 ---
@@ -796,7 +804,7 @@ Order chosen to (a) close the reliability gap on the layer that exists, (b) remo
 
 1. **Establish wake-word ground truth (Milestone 3-final).**
    - Annotate the two recordings (or record new ones) with timestamps of each "Echo" utterance and negatives.
-   - Pin Python `sherpa-onnx==1.12.21`, make `run_sherpa_benchmark.py` path-portable, and sweep `keywordsThreshold` (e.g. 0.05–0.5) and `keywordsScore` (1.0–4.0) plus per-keyword `:score`/`#threshold` in `keywords.txt`; try alternative tokenisations produced by `sherpa-onnx-cli text2token` for "echo".
+   - Pin Python `sherpa-onnx==1.12.21`, make `run_sherpa_benchmark.py` path-portable, and add a sample-offset/timestamp to each printed detection, sweep `keywordsThreshold` (e.g. 0.05–0.5) and `keywordsScore` (1.0–4.0) plus per-keyword `:score`/`#threshold` in `keywords.txt`; try alternative tokenisations produced by `sherpa-onnx-cli text2token` for "echo".
    - Capture on-device Logcat evidence for the same utterances; record results in the repo.
 2. **Cleanup of the KWS layer** (small, low-risk): remove Porcupine dependency + `PicovoiceConfig`; gate WAV capture behind a debug flag/BuildConfig and add cleanup; add `proguard-rules.pro` with `-keep class com.k2fsa.sherpa.onnx.** { *; }`; fix `settingsActivity`; update UI copy; consider `abiFilters("arm64-v8a")` for the A23 build; move Sherpa init off the main thread; report service failures back to the UI (e.g. `LocalBroadcastManager`/`LiveData`/bound service).
 3. **Speaker verification** (roadmap step 5): pick model, Netron-verify, `VoiceAuthenticator.kt`, enrolment UI, secure embedding storage, empirical threshold on A23.
