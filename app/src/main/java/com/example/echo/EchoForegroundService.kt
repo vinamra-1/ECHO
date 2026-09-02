@@ -1,0 +1,1 @@
+Get-ChildItem .\app\src\main\assets\kws\Get-ChildItem .\app\src\main\assets\kws\
